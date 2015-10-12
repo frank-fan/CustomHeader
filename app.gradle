@@ -1,0 +1,69 @@
+def p = this;
+def getReleaseVersionNameSuffix() {
+    def env = System.getenv();
+    String commit = null;
+    if (env.GIT_COMMIT != null && env.GIT_COMMIT.length() > 6) {
+        commit = env.GIT_COMMIT.substring(0, 6);
+    }
+    String suffix = "." + env.BUILD_NUMBER + "." + commit;
+    println "getReleaseVersionNameSuffix: " + suffix;
+    return suffix;
+}
+def getReleaseVersionCode() {
+    def env = System.getenv();
+    int ret = rootProject.ext.versionCode;
+    if (env.BUILD_NUMBER != null) {
+        ret = rootProject.ext.versionCode + Integer.valueOf(env.BUILD_NUMBER);
+    }
+    println "getReleaseVersionCode: " + ret;
+    return ret;
+}
+
+apply plugin: 'com.android.application'
+android {
+    sourceSets.main.jniLibs.srcDirs = ['libs']
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode getReleaseVersionCode()
+        versionName rootProject.ext.versionName
+    }
+    signingConfigs {
+         release rootProject.ext.sign
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+            versionNameSuffix p.getReleaseVersionNameSuffix()
+        }
+    }
+    lintOptions {
+        checkReleaseBuilds false
+        // Or, if you prefer, you can continue to check for errors in release builds,
+        // but continue the build even when errors are found:
+        abortOnError false
+    }
+    packagingOptions {
+        exclude 'META-INF/DEPENDENCIES.txt'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/NOTICE.txt'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/notice.txt'
+        exclude 'META-INF/license.txt'
+        exclude 'META-INF/dependencies.txt'
+        exclude 'META-INF/LGPL2.1'
+        exclude 'META-INF/services/javax.annotation.processing.Processor'
+    }
+}
+
+tasks.withType(JavaCompile) { options.encoding = "UTF-8" }
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+}
